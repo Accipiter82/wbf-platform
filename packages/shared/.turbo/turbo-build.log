@@ -1,0 +1,9 @@
+
+[1mnpm[22m [33mwarn[39m [94mconfig[39m init.author.name Use `--init-author-name` instead.
+[1mnpm[22m [33mwarn[39m [94mconfig[39m init.author.email Use `--init-author-email` instead.
+[1mnpm[22m [33mwarn[39m [94mconfig[39m init.author.url Use `--init-author-url` instead.
+
+> @wbf-platform/shared@1.0.0 build
+> tsc
+
+[1G[0K[1G[0K⠙[1G[0K
