@@ -105,6 +105,19 @@ export default function LoginPage() {
               {...form.getInputProps("password")}
             />
 
+            <Group justify="flex-end" mt={-8}>
+              <Link
+                to="/forgot-password"
+                style={{
+                  color: theme.colors.brand[7],
+                  textDecoration: "none",
+                  fontSize: "13px",
+                }}
+              >
+                Forgot password?
+              </Link>
+            </Group>
+
             <Button
               type="submit"
               loading={isLoading}
