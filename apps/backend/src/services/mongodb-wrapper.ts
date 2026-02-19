@@ -469,6 +469,7 @@ export const organisationsCollection = createCollectionWrapper(COLLECTIONS.ORGAN
 export const adminUsersCollection = createCollectionWrapper(COLLECTIONS.ADMIN_USERS);
 export const superAdminUsersCollection = createCollectionWrapper(COLLECTIONS.SUPER_ADMIN_USERS);
 export const emailVerificationsCollection = createCollectionWrapper(COLLECTIONS.EMAIL_VERIFICATIONS);
+export const passwordResetsCollection = createCollectionWrapper(COLLECTIONS.PASSWORD_RESETS);
 
 // Helper to extract collection name from Firestore reference
 function getCollectionNameFromRef(ref: any): string {
