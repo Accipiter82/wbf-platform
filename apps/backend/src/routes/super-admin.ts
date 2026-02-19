@@ -10,7 +10,8 @@ import {
     Organisation,
     OrganisationListResponse,
     SuspendOrganisationRequest,
-    AdminUser
+    AdminUser,
+    Survey
 } from "../types";
 import { uploadToS3 } from "../services/storage";
 
@@ -1086,6 +1087,136 @@ router.post("/upload-call-project-image", authenticateToken, requireSuperAdmin, 
             success: false,
             error: "Failed to upload image",
         });
+    }
+});
+
+// ==================== SURVEY MANAGEMENT ====================
+
+const createSurveySchema = Joi.object({
+    title: Joi.string().min(3).max(200).required(),
+    description: Joi.string().max(1000).allow("").optional(),
+    url: Joi.string().uri().required(),
+    status: Joi.string().valid("active", "inactive").default("active"),
+});
+
+const updateSurveySchema = Joi.object({
+    title: Joi.string().min(3).max(200).optional(),
+    description: Joi.string().max(1000).allow("").optional(),
+    url: Joi.string().uri().optional(),
+    status: Joi.string().valid("active", "inactive").optional(),
+});
+
+// GET /super-admin/surveys - List all surveys
+router.get("/surveys", authenticateToken, requireSuperAdmin, async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const surveysSnapshot = await surveysCollection
+            .orderBy("createdAt", "desc")
+            .get();
+
+        const surveys: (Survey & { id: string })[] = [];
+        surveysSnapshot.docs.forEach((doc: any) => {
+            const data = doc.data() as Survey;
+            surveys.push({ ...data, id: doc.id });
+        });
+
+        res.json({ success: true, data: { surveys } });
+        return;
+    } catch (error: any) {
+        console.error("Get surveys error:", error);
+        res.status(500).json({ success: false, error: "Failed to get surveys" });
+        return;
+    }
+});
+
+// POST /super-admin/surveys - Create a new survey
+router.post("/surveys", authenticateToken, requireSuperAdmin, async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const { error, value } = createSurveySchema.validate(req.body);
+        if (error) {
+            res.status(400).json({ success: false, error: error.details[0].message });
+            return;
+        }
+
+        const surveyId = uuidv4();
+        const now = new Date();
+
+        const surveyData: Partial<Survey> = {
+            title: value.title,
+            description: value.description || "",
+            url: value.url,
+            status: value.status,
+            createdAt: now,
+            updatedAt: now,
+            createdByAdminId: req.user!.id,
+        };
+
+        await surveysCollection.doc(surveyId).set(surveyData);
+
+        res.json({
+            success: true,
+            data: { message: "Survey created successfully", survey: { ...surveyData, id: surveyId } },
+        });
+        return;
+    } catch (error: any) {
+        console.error("Create survey error:", error);
+        res.status(500).json({ success: false, error: "Failed to create survey" });
+        return;
+    }
+});
+
+// PATCH /super-admin/surveys/:id - Update a survey
+router.patch("/surveys/:id", authenticateToken, requireSuperAdmin, async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const { id } = req.params;
+        const { error, value } = updateSurveySchema.validate(req.body);
+        if (error) {
+            res.status(400).json({ success: false, error: error.details[0].message });
+            return;
+        }
+
+        const surveyDoc = await surveysCollection.doc(id).get();
+        if (!surveyDoc.exists) {
+            res.status(404).json({ success: false, error: "Survey not found" });
+            return;
+        }
+
+        const updateData = { ...value, updatedAt: new Date() };
+        await surveysCollection.doc(id).update(updateData);
+
+        res.json({
+            success: true,
+            data: { message: "Survey updated successfully" },
+        });
+        return;
+    } catch (error: any) {
+        console.error("Update survey error:", error);
+        res.status(500).json({ success: false, error: "Failed to update survey" });
+        return;
+    }
+});
+
+// DELETE /super-admin/surveys/:id - Delete a survey
+router.delete("/surveys/:id", authenticateToken, requireSuperAdmin, async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const { id } = req.params;
+
+        const surveyDoc = await surveysCollection.doc(id).get();
+        if (!surveyDoc.exists) {
+            res.status(404).json({ success: false, error: "Survey not found" });
+            return;
+        }
+
+        await surveysCollection.doc(id).delete();
+
+        res.json({
+            success: true,
+            data: { message: "Survey deleted successfully" },
+        });
+        return;
+    } catch (error: any) {
+        console.error("Delete survey error:", error);
+        res.status(500).json({ success: false, error: "Failed to delete survey" });
+        return;
     }
 });
 
