@@ -3,9 +3,10 @@ import Joi from "joi";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
-import { organisationsCollection, db, emailVerificationsCollection, superAdminUsersCollection } from "../services/mongodb-wrapper";
+import { organisationsCollection, db, emailVerificationsCollection, superAdminUsersCollection, passwordResetsCollection } from "../services/mongodb-wrapper";
 import { authenticateToken } from "../middleware/auth";
-import { sendVerificationEmail } from "../utils/email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../utils/email";
+import crypto from "crypto";
 import { verificationStorage } from "../utils/verificationStorage";
 import {
     ApiResponse,
@@ -448,6 +449,138 @@ router.post("/register/simple", async (req: Request, res: Response<ApiResponse>)
             success: false,
             error: "Registration failed",
         });
+        return;
+    }
+});
+
+// POST /auth/forgot-password
+router.post("/forgot-password", async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const schema = Joi.object({
+            email: Joi.string().email().required(),
+        });
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            res.status(400).json({ success: false, error: error.details[0].message });
+            return;
+        }
+
+        const { email } = value;
+
+        const orgQuery = await organisationsCollection
+            .where("contactEmail", "==", email)
+            .limit(1)
+            .get();
+
+        // Always return success to prevent email enumeration
+        if (orgQuery.empty) {
+            res.json({
+                success: true,
+                data: { message: "If an account with that email exists, a password reset link has been sent." },
+            });
+            return;
+        }
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await passwordResetsCollection.doc(hashedToken).set({
+            email,
+            expiresAt,
+            used: false,
+            createdAt: new Date(),
+        });
+
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+        try {
+            await sendPasswordResetEmail(email, resetUrl);
+        } catch (emailError) {
+            console.error("Failed to send password reset email:", emailError);
+        }
+
+        res.json({
+            success: true,
+            data: { message: "If an account with that email exists, a password reset link has been sent." },
+        });
+        return;
+    } catch (error: any) {
+        console.error("Forgot password error:", error);
+        res.status(500).json({ success: false, error: "Failed to process password reset request" });
+        return;
+    }
+});
+
+// POST /auth/reset-password
+router.post("/reset-password", async (req: Request, res: Response<ApiResponse>): Promise<Response | void> => {
+    try {
+        const schema = Joi.object({
+            token: Joi.string().required(),
+            password: Joi.string().min(6).required(),
+        });
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            res.status(400).json({ success: false, error: error.details[0].message });
+            return;
+        }
+
+        const { token, password } = value;
+        const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+        const resetDoc = await passwordResetsCollection.doc(hashedToken).get();
+        if (!resetDoc.exists) {
+            res.status(400).json({ success: false, error: "Invalid or expired reset link" });
+            return;
+        }
+
+        const resetData = resetDoc.data();
+        if (!resetData || resetData.used) {
+            res.status(400).json({ success: false, error: "This reset link has already been used" });
+            return;
+        }
+
+        let expiresAt: Date = resetData.expiresAt;
+        if (expiresAt && typeof (expiresAt as any).toDate === "function") {
+            expiresAt = (expiresAt as any).toDate();
+        }
+        if (!expiresAt || new Date() > expiresAt) {
+            res.status(400).json({ success: false, error: "This reset link has expired" });
+            return;
+        }
+
+        const orgQuery = await organisationsCollection
+            .where("contactEmail", "==", resetData.email)
+            .limit(1)
+            .get();
+
+        if (orgQuery.empty) {
+            res.status(404).json({ success: false, error: "Account not found" });
+            return;
+        }
+
+        const orgDoc = orgQuery.docs[0];
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        await organisationsCollection.doc(orgDoc.id).update({
+            passwordHash: hashedPassword,
+            updatedAt: new Date(),
+        });
+
+        await passwordResetsCollection.doc(hashedToken).update({
+            used: true,
+            usedAt: new Date(),
+        });
+
+        res.json({
+            success: true,
+            data: { message: "Password has been reset successfully" },
+        });
+        return;
+    } catch (error: any) {
+        console.error("Reset password error:", error);
+        res.status(500).json({ success: false, error: "Failed to reset password" });
         return;
     }
 });
