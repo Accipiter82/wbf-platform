@@ -62,6 +62,7 @@ export const COLLECTIONS = {
     CONVERSATIONS: 'conversations',
     ORGANISATION_CONVERSATIONS: 'organisationConversations',
     MESSAGES: 'messages', // Sub-collection equivalent
+    PASSWORD_RESETS: 'password_resets',
 } as const;
 
 export default db;
