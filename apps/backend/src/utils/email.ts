@@ -179,6 +179,45 @@ export const sendDirectMessageEmail = async (
     }
 };
 
+// Send password reset email
+export const sendPasswordResetEmail = async (email: string, resetUrl: string) => {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+        from: process.env.SMTP_USER || "noreply@wbf-platform.com",
+        to: email,
+        subject: "Password Reset - WBF Organisation Platform",
+        html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2d3d5f;">Password Reset Request</h2>
+        <p>We received a request to reset your password for the WBF Organisation Platform.</p>
+        <p>Click the button below to set a new password:</p>
+        <p style="margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #2d3d5f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">Reset Password</a>
+        </p>
+        <p style="color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
+        <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+        <p style="color: #999; font-size: 12px;">If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${resetUrl}" style="color: #2d3d5f; word-break: break-all;">${resetUrl}</a></p>
+        <p style="margin-top: 20px; color: #888; font-size: 12px;">Best regards,<br>WBF Team</p>
+      </div>
+    `,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Password reset email sent to ${email}`);
+
+        if (!isSmtpConfigured()) {
+            console.log(`🔐 PASSWORD RESET URL for ${email}: ${resetUrl}`);
+        }
+    } catch (error) {
+        console.error("Error sending password reset email:", error);
+        throw error;
+    }
+};
+
 // Send call/project application notification email
 export const sendApplicationEmail = async (
     recipientEmail: string,
