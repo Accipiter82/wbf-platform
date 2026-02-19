@@ -814,12 +814,6 @@ export default function ProfilePage() {
             "Montenegro",
             "North Macedonia",
             "Serbia",
-            "Croatia",
-            "Slovenia",
-            "Bulgaria",
-            "Romania",
-            "Greece",
-            "Turkey",
             "Other",
           ]}
           disabled={!isEditing}
@@ -1000,12 +994,6 @@ export default function ProfilePage() {
             "Montenegro",
             "North Macedonia",
             "Serbia",
-            "Croatia",
-            "Slovenia",
-            "Bulgaria",
-            "Romania",
-            "Greece",
-            "Turkey",
             "Other",
           ]}
           disabled={!isEditing}
