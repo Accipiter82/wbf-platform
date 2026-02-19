@@ -79,12 +79,6 @@ export const countries = [
     "Montenegro",
     "North Macedonia",
     "Serbia",
-    "Croatia",
-    "Slovenia",
-    "Bulgaria",
-    "Romania",
-    "Greece",
-    "Turkey",
     "Other",
 ];
 
