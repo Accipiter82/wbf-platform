@@ -133,6 +133,38 @@ export const getCurrentUser = createAsyncThunk(
     }
 );
 
+export const forgotPassword = createAsyncThunk(
+    'auth/forgotPassword',
+    async (email: string, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { email });
+            if (response.data.success) {
+                return response.data.data;
+            } else {
+                return rejectWithValue(response.data.error);
+            }
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.error || 'Failed to send reset email');
+        }
+    }
+);
+
+export const resetPassword = createAsyncThunk(
+    'auth/resetPassword',
+    async ({ token, password }: { token: string; password: string }, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, { token, password });
+            if (response.data.success) {
+                return response.data.data;
+            } else {
+                return rejectWithValue(response.data.error);
+            }
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.error || 'Failed to reset password');
+        }
+    }
+);
+
 export const superAdminLogin = createAsyncThunk(
     'auth/superAdminLogin',
     async (credentials: SuperAdminLoginRequest, { rejectWithValue }) => {
