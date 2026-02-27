@@ -50,6 +50,13 @@ const allowedOrigins = [
     "http://localhost:3001",
     "http://localhost:3101",
     "http://192.168.200.241:5173",
+    // AWS production & CloudFront
+    "https://portal.wbfpartnership.com",
+    "https://d3nedf778h39b3.cloudfront.net",
+    "https://landing.portal.wbfpartnership.com",
+    "https://d1hotf1ow54vpo.cloudfront.net",
+    "https://www.portal.wbfpartnership.com",
+    "https://www.landing.portal.wbfpartnership.com",
 ];
 
 const corsOptions: cors.CorsOptions = {
@@ -90,13 +97,55 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser() as unknown as express.RequestHandler);
 
-// Health
+// Health check endpoints (root for ALB, /health for explicit checks)
+app.get("/", (_req, res) => {
+    res.json({
+        success: true,
+        message: "WBF Platform Backend is running",
+        timestamp: new Date().toISOString(),
+    });
+});
+
 app.get("/health", (_req, res) => {
     res.json({
         success: true,
         message: "WBF Platform Backend is running",
         timestamp: new Date().toISOString(),
     });
+});
+
+// Diagnostic endpoint (for AWS EB debugging; avoid in production if sensitive)
+app.get("/diagnostics", (_req, res) => {
+    const dns = require("dns").promises;
+    const { exec } = require("child_process");
+    const util = require("util");
+    const execPromise = util.promisify(exec);
+
+    const mongoUri = process.env.MONGODB_URI || "";
+    const mongoHost = mongoUri.match(/@([^/]+)/)?.[1]?.split(",")?.[0] || "localhost";
+
+    Promise.all([
+        Promise.resolve({
+            nodeVersion: process.version,
+            opensslVersion: process.versions.openssl,
+            platform: process.platform,
+            arch: process.arch,
+        }),
+        dns.resolve(mongoHost).catch((e: Error) => ({ error: e.message })),
+        execPromise("curl -s https://api.ipify.org").catch((e: Error) => ({ error: e.message })),
+    ])
+        .then(([sysInfo, dnsResult, ipResult]) => {
+            res.json({
+                success: true,
+                system: sysInfo,
+                dns: dnsResult,
+                publicIP: typeof ipResult === "object" && "stdout" in ipResult ? ipResult.stdout : ipResult,
+                mongodbUri: mongoUri.replace(/:[^:@]+@/, ":***@"),
+            });
+        })
+        .catch((error) => {
+            res.status(500).json({ success: false, error: (error as Error).message });
+        });
 });
 
 // API routes

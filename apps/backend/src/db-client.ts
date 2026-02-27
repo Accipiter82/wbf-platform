@@ -1,15 +1,26 @@
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-import path from 'path';
+import { MongoClient, MongoClientOptions } from "mongodb";
+import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 // MongoDB connection URL
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = process.env.MONGODB_DB_NAME || 'wbf-platform';
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const DB_NAME = process.env.MONGODB_DB_NAME || "wbf-platform";
 
 let client: MongoClient | null = null;
 let db: any = null;
+
+// MongoDB connection options (optimized for EC2/Atlas)
+const connectionOptions: MongoClientOptions = {
+    serverSelectionTimeoutMS: 30000,
+    connectTimeoutMS: 30000,
+    socketTimeoutMS: 30000,
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    retryWrites: true,
+    retryReads: true,
+};
 
 // Initialize MongoDB connection
 export async function connectMongoDB(): Promise<any> {
@@ -18,7 +29,8 @@ export async function connectMongoDB(): Promise<any> {
     }
 
     try {
-        client = new MongoClient(MONGODB_URI);
+        console.log("[MongoDB] Connecting to MongoDB...");
+        client = new MongoClient(MONGODB_URI, connectionOptions);
         await client.connect();
         db = client.db(DB_NAME);
         console.log(`[MongoDB] Connected to database: ${DB_NAME}`);
@@ -63,6 +75,7 @@ export const COLLECTIONS = {
     ORGANISATION_CONVERSATIONS: 'organisationConversations',
     MESSAGES: 'messages', // Sub-collection equivalent
     PASSWORD_RESETS: 'password_resets',
+    SURVEYS: 'surveys',
 } as const;
 
 export default db;

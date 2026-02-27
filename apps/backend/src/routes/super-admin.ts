@@ -3,7 +3,7 @@ import Joi from "joi";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import multer from "multer";
-import { organisationsCollection, superAdminUsersCollection, FieldValue, Timestamp } from "../services/mongodb-wrapper";
+import { organisationsCollection, superAdminUsersCollection, surveysCollection, FieldValue, Timestamp } from "../services/mongodb-wrapper";
 import { authenticateToken, requireSuperAdmin } from "../middleware/auth";
 import {
     ApiResponse,

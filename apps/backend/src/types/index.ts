@@ -119,6 +119,16 @@ export interface SuspendOrganisationRequest {
     reason: string;
 }
 
+export interface Survey {
+    title: string;
+    description?: string;
+    url: string;
+    status: "active" | "inactive";
+    createdAt: Date;
+    updatedAt: Date;
+    createdByAdminId?: string;
+}
+
 // Opportunity models (backend uses Firestore Timestamps for dates)
 export type OpportunityType = "call" | "project";
 
