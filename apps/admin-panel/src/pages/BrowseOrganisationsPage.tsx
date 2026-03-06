@@ -65,9 +65,11 @@ export default function BrowseOrganisationsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedContractingParty, setSelectedContractingParty] = useState<string>("");
   const [selectedSector, setSelectedSector] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedByCall, setSelectedByCall] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [minYear, setMinYear] = useState<number | null>(null);
   const [maxYear, setMaxYear] = useState<number | null>(null);
@@ -123,10 +125,12 @@ export default function BrowseOrganisationsPage() {
         page: currentPage,
         limit: 12,
         city: selectedCity || undefined,
+        country: selectedCountry || undefined,
         contractingParty: selectedContractingParty || undefined,
         sector: selectedSector || undefined,
         status: selectedStatus || undefined,
         type: selectedType || undefined,
+        byCall: selectedByCall || undefined,
         minYear: minYear || undefined,
         maxYear: maxYear || undefined,
         minStaff: minStaff || undefined,
@@ -160,10 +164,12 @@ export default function BrowseOrganisationsPage() {
         page: 1,
         limit: 12,
         city: selectedCity || undefined,
+        country: selectedCountry || undefined,
         contractingParty: selectedContractingParty || undefined,
         sector: selectedSector || undefined,
         status: selectedStatus || undefined,
         type: selectedType || undefined,
+        byCall: selectedByCall || undefined,
         minYear: minYear || undefined,
         maxYear: maxYear || undefined,
         minStaff: minStaff || undefined,
@@ -192,6 +198,8 @@ export default function BrowseOrganisationsPage() {
   const handleReset = () => {
     setSearchTerm("");
     setSelectedCity("");
+    setSelectedCountry("");
+    setSelectedByCall("");
     setSelectedContractingParty("");
     setSelectedSector("");
     setSelectedStatus("");
@@ -286,6 +294,14 @@ export default function BrowseOrganisationsPage() {
                 leftSection={<IconMapPin size={16} />}
                 disabled={isLoading}
               />
+              <Select
+                placeholder="Filter by country"
+                data={COUNTRIES.map((c) => ({ value: c.value, label: c.label }))}
+                value={selectedCountry}
+                onChange={(value) => setSelectedCountry(value || "")}
+                clearable
+                disabled={isLoading}
+              />
               <TextInput
                 placeholder="Filter by Contracting Party"
                 value={selectedContractingParty}
@@ -298,6 +314,18 @@ export default function BrowseOrganisationsPage() {
                 data={SECTORS.map((s) => ({ value: s.value, label: s.label }))}
                 value={selectedSector}
                 onChange={(value) => setSelectedSector(value || "")}
+                clearable
+                disabled={isLoading}
+              />
+              <Select
+                placeholder="Active call/project"
+                data={[
+                  { value: "", label: "All" },
+                  { value: "hasCallsOrProjects", label: "Yes" },
+                  { value: "noCallsOrProjects", label: "No" },
+                ]}
+                value={selectedByCall}
+                onChange={(value) => setSelectedByCall(value || "")}
                 clearable
                 disabled={isLoading}
               />

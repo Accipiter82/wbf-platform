@@ -181,7 +181,7 @@ export default function OrganisationsPage() {
       limit: itemsPerPage,
     };
     if (selectedCountries.length > 0) p.country = selectedCountries[0];
-    if (selectedType) p.sector = selectedType;
+    if (selectedType) p.type = selectedType;
     if (selectedStatus) p.status = selectedStatus;
     if (selectedCity) p.city = selectedCity;
     if (selectedContractingParty) p.contractingParty = selectedContractingParty;
@@ -305,10 +305,10 @@ export default function OrganisationsPage() {
       const term = searchTerm.toLowerCase();
       if (
         !(
-          org.name.toLowerCase().includes(term) ||
-          org.nameLocal?.toLowerCase().includes(term) ||
-          org.profile.city?.toLowerCase().includes(term) ||
-          (org.fields.keywords || []).some((keyword: string) =>
+          org.name?.toLowerCase()?.includes(term) ||
+          org.nameLocal?.toLowerCase()?.includes(term) ||
+          org.profile?.city?.toLowerCase()?.includes(term) ||
+          (org.fields?.keywords || []).some((keyword: string) =>
             keyword.toLowerCase().includes(term)
           )
         )
@@ -319,7 +319,7 @@ export default function OrganisationsPage() {
     if (selectedMissionFields.length > 0) {
       if (
         !selectedMissionFields.some((field) =>
-          (org.fields.missionFields || []).includes(field)
+          (org.fields?.missionFields || []).includes(field)
         )
       ) {
         return false;

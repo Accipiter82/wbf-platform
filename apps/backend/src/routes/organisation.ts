@@ -950,7 +950,7 @@ router.get("/browse", optionalAuthenticateToken, async (req: Request, res: Respo
 
         // Apply filters that can be done at database level
         if (country) {
-            query = query.where("profile.city", "==", country);
+            query = query.where("country", "==", country);
         }
         if (sector) {
             query = query.where("fields.missionFields", "array-contains", sector);
@@ -1038,11 +1038,33 @@ router.get("/browse", optionalAuthenticateToken, async (req: Request, res: Respo
             );
         }
 
+        // Project filters (client-side; filter organisations that have at least one project matching)
+        if (projectStatus) {
+            allOrgs = allOrgs.filter((org: any) =>
+                org.projects?.some((p: any) => (p.projectStatus || p.status) === projectStatus)
+            );
+        }
+        if (fundingSource) {
+            allOrgs = allOrgs.filter((org: any) =>
+                org.projects?.some((p: any) => p.fundingSource === fundingSource)
+            );
+        }
+        if (budgetVisibility) {
+            allOrgs = allOrgs.filter((org: any) =>
+                org.projects?.some((p: any) => p.budgetVisibility === budgetVisibility)
+            );
+        }
+        if (visibility) {
+            allOrgs = allOrgs.filter((org: any) =>
+                org.projects?.some((p: any) => p.visibility === visibility)
+            );
+        }
+
         // Search functionality
         if (search) {
             const searchTerm = (search as string).toLowerCase();
             allOrgs = allOrgs.filter((org: any) =>
-                org.name.toLowerCase().includes(searchTerm) ||
+                org.name?.toLowerCase()?.includes(searchTerm) ||
                 org.nameLocal?.toLowerCase().includes(searchTerm) ||
                 org.fields?.missionFields?.some((field: string) => field.toLowerCase().includes(searchTerm)) ||
                 org.fields?.keywords?.some((keyword: string) => keyword.toLowerCase().includes(searchTerm)) ||
@@ -1538,13 +1560,16 @@ router.get("/opportunities/all", async (req: Request, res: Response<ApiResponse>
         const limitNum = parseInt(limit as string) || 12;
         const includeFinishedBool = includeFinished === "true";
 
-        // Get organizations (filter by organisationId if provided)
+        // Get organizations (filter by organisationId if provided; otherwise only approved)
         let orgsSnapshot;
         if (organisationId && typeof organisationId === 'string') {
             const orgDoc = await organisationsCollection.doc(organisationId).get();
-            orgsSnapshot = orgDoc.exists ? { docs: [orgDoc] } : { docs: [] };
+            const dataFn = (orgDoc as any).data;
+            const orgData = typeof dataFn === 'function' ? dataFn() : undefined;
+            const isApproved = orgData?.status === "approved";
+            orgsSnapshot = orgDoc.exists && isApproved ? { docs: [orgDoc] } : { docs: [] };
         } else {
-            orgsSnapshot = await organisationsCollection.get();
+            orgsSnapshot = await organisationsCollection.where("status", "==", "approved").get();
         }
         let allOpportunities: any[] = [];
 
@@ -1628,13 +1653,13 @@ router.get("/opportunities/all", async (req: Request, res: Response<ApiResponse>
             );
         }
 
-        // Filter by budget range
+        // Filter by budget range (overlap: opportunity range overlaps user's range)
         if (budgetMin || budgetMax) {
+            const userMin = budgetMin ? parseInt(budgetMin as string) : 0;
+            const userMax = budgetMax ? parseInt(budgetMax as string) : Infinity;
             filteredOpportunities = filteredOpportunities.filter(op => {
-                if (!op.budget) return false;
-                const min = budgetMin ? parseInt(budgetMin as string) : 0;
-                const max = budgetMax ? parseInt(budgetMax as string) : Infinity;
-                return op.budget.min >= min && op.budget.max <= max;
+                if (!op.budget || op.budget.min == null || op.budget.max == null) return false;
+                return op.budget.min <= userMax && op.budget.max >= userMin;
             });
         }
 

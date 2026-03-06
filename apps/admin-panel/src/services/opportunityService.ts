@@ -86,8 +86,15 @@ export const opportunityService = {
             queryParams.append('organisationId', params.organisationId);
         }
 
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await axios.get(
-            `${API_BASE_URL}/organisation/opportunities/all?${queryParams.toString()}`
+            `${API_BASE_URL}/organisation/opportunities/all?${queryParams.toString()}`,
+            { headers }
         );
 
         if (!response.data.success) {
